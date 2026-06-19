@@ -23,14 +23,14 @@ def preprocess_for_contours(image):
     """
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    edges = cv2.Canny(blurred, 50, 150)
+    edges = cv2.Canny(blurred, 30, 120)
     # 膨胀连接断裂边缘
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
     edges = cv2.dilate(edges, kernel, iterations=1)
     return edges
 
 
-def detect_shapes(image, min_area=300, shape_region_ratio=0.75):
+def detect_shapes(image, min_area=150, shape_region_ratio=0.75):
     """
     基于轮廓近似识别矩形、三角形、圆形、多边形
     仅检测图片上方区域（避免下方数字干扰），扩大检测范围至75%

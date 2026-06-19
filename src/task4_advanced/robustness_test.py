@@ -84,6 +84,22 @@ def evaluate_color_detection(image_path, expected_targets=None):
     }
 
 
+def enhance_for_low_light(image):
+    """
+    对低光照图像进行增强预处理（CLAHE自适应直方图均衡化）
+    在HSV的V通道上做CLAHE，保留颜色信息的同时提升亮度对比度
+    :param image: BGR图像
+    :return: 增强后的BGR图像
+    """
+    # 转到LAB色彩空间，对L通道做CLAHE（比直接在灰度图上效果更好）
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    l_channel, a_channel, b_channel = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    l_enhanced = clahe.apply(l_channel)
+    lab_enhanced = cv2.merge([l_enhanced, a_channel, b_channel])
+    return cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2BGR)
+
+
 def run_lighting_tests(image_dir, output_dir, expected_count=None):
     """
     光照鲁棒性测试
@@ -114,9 +130,15 @@ def run_lighting_tests(image_dir, output_dir, expected_count=None):
         enhanced = apply_lighting_effect(image, light_type)
         save_image(os.path.join(output_dir, f"{light_type}_processed.jpg"), enhanced)
 
-        # 在增强后的图像上进行检测
-        _, red_targets, _, _ = detect_color_targets(enhanced, 'red', min_area=200)
-        _, blue_targets, _, _ = detect_color_targets(enhanced, 'blue', min_area=200)
+        # 对暗光场景（dark/backlit）使用CLAHE增强后再检测，提升鲁棒性
+        if light_type in ('dark', 'backlit'):
+            detect_img = enhance_for_low_light(enhanced)
+        else:
+            detect_img = enhanced
+
+        # 在处理后的图像上进行检测
+        _, red_targets, _, _ = detect_color_targets(detect_img, 'red', min_area=200)
+        _, blue_targets, _, _ = detect_color_targets(detect_img, 'blue', min_area=200)
         detected = len(red_targets) + len(blue_targets)
 
         expected = expected_count.get(light_type, detected) if expected_count else detected

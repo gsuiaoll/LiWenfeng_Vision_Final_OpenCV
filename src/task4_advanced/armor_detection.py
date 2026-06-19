@@ -208,26 +208,26 @@ def detect_armor(image, min_area=100, max_area=5000):
             # 标注信息（自适应位置，增加深色背景条确保文字在任何背景下都清晰）
             h_img, w_img = result.shape[:2]
             label1 = f"ARMOR {color_name.upper()}"
-            label2 = f"C:({cx},{cy}) A:{round(armor['angle'], 1)}°"
+            label2 = f"C:({cx},{cy}) A:{round(armor['angle'], 1)}"
             font = cv2.FONT_HERSHEY_SIMPLEX
             tw1, th1 = cv2.getTextSize(label1, font, 0.45, 2)[0]
             tw2, th2 = cv2.getTextSize(label2, font, 0.4, 2)[0]
-            max_tw = max(tw1, tw2)
+            max_tw = max(tw1, tw2) + 8  # 增加内边距防止截断
             # 标签放在装甲板框下方，避免超出图片边界
-            lx = max(5, min(cx - max_tw // 2, w_img - max_tw - 5))
+            lx = max(5, min(cx - max_tw // 2 + 4, w_img - max_tw - 5))
             # 放在框下方，如果下方空间不够则放上方
             box_bottom = cy + armor['height'] // 2 + 5
             box_top = cy - armor['height'] // 2 - 5
-            if box_bottom + 40 < h_img:
+            if box_bottom + 45 < h_img:
                 ly1 = box_bottom + 15
             else:
-                ly1 = max(20, box_top - 35)
-            ly2 = ly1 + 18
-            # 绘制背景条（覆盖两行文字）
-            bg_y1 = max(0, ly1 - th1 - 3)
-            bg_y2 = min(h_img, ly2 + 3)
-            bg_x1 = max(0, lx - 3)
-            bg_x2 = min(w_img, lx + max_tw + 3)
+                ly1 = max(20, box_top - 40)
+            ly2 = ly1 + 20
+            # 绘制背景条（覆盖两行文字，增加padding）
+            bg_y1 = max(0, ly1 - th1 - 4)
+            bg_y2 = min(h_img, ly2 + 4)
+            bg_x1 = max(0, lx - 4)
+            bg_x2 = min(w_img, lx + max_tw)
             cv2.rectangle(result, (bg_x1, bg_y1), (bg_x2, bg_y2), (30, 30, 30), -1)
             cv2.putText(result, label1, (lx, ly1), font, 0.45, color_bgr, 2)
             cv2.putText(result, label2, (lx, ly2), font, 0.4, color_bgr, 2)

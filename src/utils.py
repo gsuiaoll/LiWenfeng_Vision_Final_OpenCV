@@ -27,7 +27,7 @@ def read_image(path):
 
 def save_image(path, image):
     """
-    保存图片到指定路径
+    保存图片到指定路径（支持中文路径）
     :param path: 保存路径
     :param image: 要保存的图像
     :return: 是否保存成功
@@ -35,12 +35,17 @@ def save_image(path, image):
     directory = os.path.dirname(path)
     if directory and not os.path.exists(directory):
         os.makedirs(directory, exist_ok=True)
-    success = cv2.imwrite(path, image)
+    # 使用imencode+tofile方式保存，兼容中文路径
+    ext = os.path.splitext(path)[1].lower()
+    encode_params = [cv2.IMWRITE_JPEG_QUALITY, 95] if ext in ('.jpg', '.jpeg') else []
+    success, encoded = cv2.imencode(ext, image, encode_params)
     if success:
+        encoded.tofile(path)
         print(f"[保存成功] {path}")
+        return True
     else:
         print(f"[保存失败] {path}")
-    return success
+        return False
 
 
 def create_comparison_image(images, titles, cols=2):
