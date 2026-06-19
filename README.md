@@ -62,7 +62,8 @@ python -c "import cv2; print(cv2.__version__)"
 │   └── task4_advanced/
 │       ├── armor_detection.py              # 进阶一：装甲板目标定位
 │       ├── robustness_test.py              # 进阶二：鲁棒性测试
-│       └── trackbar_tool.py                # 进阶三：Trackbar交互调参
+│       ├── trackbar_tool.py                # 进阶三：Trackbar交互调参
+│       └── generate_trackbar_screenshot.py # Trackbar效果图自动生成
 └── test_images/
     ├── original/
     │   └── images/                         # 原始测试图片
@@ -237,7 +238,7 @@ python run_all.py
 
 运行后所有非交互式任务的测试结果将保存在 `test_images/results/` 目录下。
 
-> 注：`run_all.py` 包含任务一至任务四的自动化测试；Trackbar 交互调参工具因需要人工操作，需单独运行。
+> 注：`run_all.py` 包含任务一至任务四的自动化测试，并自动生成 Trackbar 调参效果图；Trackbar 交互调参工具因需要人工操作，需单独运行。
 
 ### 5.2 单独运行某个任务
 
@@ -262,6 +263,9 @@ python -m src.task4_advanced.robustness_test
 
 # 进阶三：Trackbar调参工具
 python -m src.task4_advanced.trackbar_tool
+
+# Trackbar 效果图自动生成（无需人工操作）
+python -m src.task4_advanced.generate_trackbar_screenshot
 ```
 
 ---
@@ -281,6 +285,7 @@ python -m src.task4_advanced.trackbar_tool
 | 多条件目标精定位（装甲板） | task4_advanced | `detect_light_bars()`, `find_armor_candidates()`, `detect_corners()` | ✅ 检测到5个装甲板目标（颜色+轮廓+角点融合） |
 | 算法鲁棒性测试 | task4_advanced | `robustness_test_pipeline()`, 光照/遮挡场景测试 | ✅ 自动生成Markdown测试报告 |
 | 交互调参工具（Trackbar） | task4_advanced | 基于 `cv2.createTrackbar()` 实时调节 | ✅ 可交互实时调参 |
+| Trackbar效果图自动生成 | task4_advanced | `generate_trackbar_screenshot()` 预设参数批量生成 | ✅ 集成到 run_all.py |
 | 代码模块化拆分 | src/ 下8个任务/工具脚本 + utils.py | 各模块独立，单任务可单独运行 | ✅ 结构清晰 |
 | 关键函数中文注释 | 所有函数 | docstring + 行内逻辑注释 | ✅ 注释完整 |
 | 测试效果图分类存放 | test_images/results/ | task1/task2/task3/task4 分类存放 | ✅ 按任务分类 |

@@ -13,7 +13,7 @@ import os
 import sys
 
 # 将项目根目录加入模块搜索路径
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.utils import read_image, save_image, create_comparison_image
 
 

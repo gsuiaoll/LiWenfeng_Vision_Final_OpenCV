@@ -11,7 +11,7 @@ import os
 import sys
 import numpy as np
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.utils import read_image, save_image, create_comparison_image
 
 
@@ -64,13 +64,13 @@ def preprocess_for_contours(image):
     return _preprocess_canny(image)
 
 
-def detect_shapes(image, min_area=150, shape_region_ratio=0.82):
+def detect_shapes(image, min_area=150, shape_region_ratio=1.0):
     """
     基于轮廓近似识别三角形、正方形、矩形、五边形、六边形、圆形、椭圆
-    仅检测图片上方区域（避免下方数字干扰），默认检测范围至82%
+    仅检测图片上方区域（避免下方数字干扰），默认检测范围为全图
     :param image: BGR彩色图像
     :param min_area: 最小有效轮廓面积
-    :param shape_region_ratio: 形状区域占图片高度的比例（上方部分）
+    :param shape_region_ratio: 形状区域占图片高度的比例（上方部分），默认1.0表示全图
     :return: 标注后的图像和图形信息列表
     """
     h, w = image.shape[:2]
@@ -105,11 +105,6 @@ def detect_shapes(image, min_area=150, shape_region_ratio=0.82):
         # 圆度判断：面积与周长关系
         circularity = 4 * np.pi * area / (peri * peri) if peri > 0 else 0
 
-        # 凸包低精度近似顶点数：平滑的椭圆/圆会留下很多顶点，多边形则被压缩
-        hull = cv2.convexHull(cnt)
-        hull_peri = cv2.arcLength(hull, True)
-        hull_low = len(cv2.approxPolyDP(hull, 0.001 * hull_peri, True))
-
         # 拟合椭圆的长短轴之比：对倾斜椭圆比圆度/长宽比更鲁棒
         fit_axes_ratio = 1.0
         if len(cnt) >= 5:
@@ -119,28 +114,22 @@ def detect_shapes(image, min_area=150, shape_region_ratio=0.82):
             except cv2.error:
                 fit_axes_ratio = 1.0
 
+        # 基于顶点数、圆度和长宽比的简洁分类规则
         shape_name = "unknown"
         if vertices == 3:
-            shape_name = "ellipse" if hull_low >= 15 else "triangle"
+            shape_name = "triangle"
         elif vertices == 4:
-            if hull_low >= 15:
-                shape_name = "ellipse"
-            elif 0.8 <= aspect_ratio <= 1.25:
-                shape_name = "square"
-            elif hull_low >= 6 and aspect_ratio > 1.3:
-                shape_name = "pentagon"
-            else:
-                shape_name = "rectangle"
+            # 接近正方形的长宽比阈值放宽到1.2，适应轻微透视畸变
+            shape_name = "square" if aspect_ratio < 1.2 else "rectangle"
         elif vertices == 5:
             shape_name = "pentagon"
         elif vertices == 6:
-            shape_name = "ellipse" if hull_low >= 15 else "hexagon"
+            shape_name = "hexagon"
         elif vertices >= 7:
-            if fit_axes_ratio > 1.2:
-                shape_name = "ellipse"
-            elif circularity > 0.78 and aspect_ratio < 1.3:
+            # 多顶点图形：先按圆度区分圆，再按长短轴比区分椭圆
+            if circularity > 0.7 and aspect_ratio < 1.3:
                 shape_name = "circle"
-            elif aspect_ratio > 1.25 or hull_low >= 15:
+            elif fit_axes_ratio > 1.15 or aspect_ratio > 1.25:
                 shape_name = "ellipse"
             else:
                 shape_name = "hexagon"

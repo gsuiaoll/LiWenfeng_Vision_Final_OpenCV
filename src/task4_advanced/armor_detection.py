@@ -11,7 +11,7 @@ import os
 import sys
 import numpy as np
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.utils import read_image, save_image, create_comparison_image
 
 
@@ -118,6 +118,17 @@ def find_armor_candidates(light_bars, max_distance_ratio=3.5, max_angle_diff=15)
             # 角度归一化到[0,90)后再比较差值，避免0°/90°歧义导致误判
             angle_diff = abs(normalize_angle(bar1['angle']) - normalize_angle(bar2['angle']))
             if angle_diff > max_angle_diff:
+                continue
+
+            # 灯条长度应相近，避免大小差异过大的误配对
+            if min(length1, length2) > 0:
+                length_ratio = max(length1, length2) / min(length1, length2)
+                if length_ratio > 2.0:
+                    continue
+
+            # 两灯条中心y坐标应接近，确保大致在同一水平线上
+            y_diff = abs(cy1 - cy2)
+            if y_diff > avg_length * 0.8:
                 continue
 
             # 得分：距离在1.5~2.5倍灯条长度之间最佳

@@ -9,7 +9,7 @@ import os
 import sys
 import numpy as np
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.utils import read_image, save_image
 
 
@@ -29,6 +29,8 @@ class TrackbarTool:
         # 创建Trackbar
         cv2.createTrackbar("H Lower", self.WINDOW_NAME, 0, 180, self.nothing)
         cv2.createTrackbar("H Upper", self.WINDOW_NAME, 180, 180, self.nothing)
+        cv2.createTrackbar("H Lower2", self.WINDOW_NAME, 0, 180, self.nothing)
+        cv2.createTrackbar("H Upper2", self.WINDOW_NAME, 0, 180, self.nothing)
         cv2.createTrackbar("S Lower", self.WINDOW_NAME, 0, 255, self.nothing)
         cv2.createTrackbar("S Upper", self.WINDOW_NAME, 255, 255, self.nothing)
         cv2.createTrackbar("V Lower", self.WINDOW_NAME, 0, 255, self.nothing)
@@ -37,7 +39,7 @@ class TrackbarTool:
         cv2.createTrackbar("Morph Kernel", self.WINDOW_NAME, 1, 21, self.nothing)
         cv2.createTrackbar("Min Area", self.WINDOW_NAME, 100, 2000, self.nothing)
 
-        # 设置初始值（蓝色示例）
+        # 设置初始值（蓝色示例，H2 范围默认关闭）
         cv2.setTrackbarPos("H Lower", self.WINDOW_NAME, 100)
         cv2.setTrackbarPos("H Upper", self.WINDOW_NAME, 130)
         cv2.setTrackbarPos("S Lower", self.WINDOW_NAME, 120)
@@ -51,6 +53,8 @@ class TrackbarTool:
         """读取当前Trackbar的值"""
         h_lower = cv2.getTrackbarPos("H Lower", self.WINDOW_NAME)
         h_upper = cv2.getTrackbarPos("H Upper", self.WINDOW_NAME)
+        h_lower2 = cv2.getTrackbarPos("H Lower2", self.WINDOW_NAME)
+        h_upper2 = cv2.getTrackbarPos("H Upper2", self.WINDOW_NAME)
         s_lower = cv2.getTrackbarPos("S Lower", self.WINDOW_NAME)
         s_upper = cv2.getTrackbarPos("S Upper", self.WINDOW_NAME)
         v_lower = cv2.getTrackbarPos("V Lower", self.WINDOW_NAME)
@@ -69,6 +73,7 @@ class TrackbarTool:
 
         return {
             'h_lower': h_lower, 'h_upper': h_upper,
+            'h_lower2': h_lower2, 'h_upper2': h_upper2,
             's_lower': s_lower, 's_upper': s_upper,
             'v_lower': v_lower, 'v_upper': v_upper,
             'blur_k': blur_k, 'morph_k': morph_k,
@@ -87,10 +92,14 @@ class TrackbarTool:
         else:
             blurred_hsv = self.hsv
 
-        # HSV阈值分割
-        lower = np.array([params['h_lower'], params['s_lower'], params['v_lower']])
-        upper = np.array([params['h_upper'], params['s_upper'], params['v_upper']])
-        mask = cv2.inRange(blurred_hsv, lower, upper)
+        # HSV阈值分割（支持双段H范围，如红色跨越0°/180°）
+        lower1 = np.array([params['h_lower'], params['s_lower'], params['v_lower']])
+        upper1 = np.array([params['h_upper'], params['s_upper'], params['v_upper']])
+        mask = cv2.inRange(blurred_hsv, lower1, upper1)
+        if params['h_upper2'] > params['h_lower2']:
+            lower2 = np.array([params['h_lower2'], params['s_lower'], params['v_lower']])
+            upper2 = np.array([params['h_upper2'], params['s_upper'], params['v_upper']])
+            mask = cv2.bitwise_or(mask, cv2.inRange(blurred_hsv, lower2, upper2))
 
         # 形态学处理
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT,
@@ -116,7 +125,11 @@ class TrackbarTool:
         combined = np.hstack([self.image, mask_color, result])
 
         # 显示当前参数
-        info = f"H:[{params['h_lower']},{params['h_upper']}] S:[{params['s_lower']},{params['s_upper']}] V:[{params['v_lower']},{params['v_upper']}] Blur:{params['blur_k']} Morph:{params['morph_k']} MinArea:{params['min_area']}"
+        h2_info = f" H2:[{params['h_lower2']},{params['h_upper2']}]" if params['h_upper2'] > params['h_lower2'] else ""
+        info = (f"H:[{params['h_lower']},{params['h_upper']}]{h2_info} "
+                f"S:[{params['s_lower']},{params['s_upper']}] "
+                f"V:[{params['v_lower']},{params['v_upper']}] "
+                f"Blur:{params['blur_k']} Morph:{params['morph_k']} MinArea:{params['min_area']}")
         cv2.putText(combined, info, (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
 
@@ -150,7 +163,8 @@ class TrackbarTool:
 
     def save_current_state(self, params, combined, mask):
         """保存当前参数和结果图"""
-        output_dir = os.path.join("test_images", "results", "task4", "trackbar")
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        output_dir = os.path.join(project_root, "test_images", "results", "task4", "trackbar")
         os.makedirs(output_dir, exist_ok=True)
 
         # 保存结果图（使用save_image支持中文路径）

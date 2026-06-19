@@ -14,7 +14,7 @@ import os
 import sys
 import numpy as np
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.utils import read_image, save_image, create_comparison_image
 
 
@@ -109,15 +109,22 @@ def preprocess_digit_roi(roi):
     return canvas, cnt
 
 
-def match_digit(roi, cnt, templates):
+def match_digit(roi, cnt, templates, aspect_ratio=0.6):
     """
-    综合模板匹配和Hu矩轮廓匹配识别单个数字
-    模板匹配对同字体数字准确率高，Hu矩辅助区分形近字
+    综合模板匹配、Hu矩轮廓匹配和几何特征识别单个数字
+    模板匹配对同字体数字准确率高，Hu矩辅助区分形近字，
+    宽高比几何特征对“1”等瘦长数字有显著区分度
     :param roi: 预处理后的数字二值图
     :param cnt: 数字轮廓
     :param templates: 数字模板字典 {数字: (模板图, 模板轮廓)}
+    :param aspect_ratio: 原始数字区域的宽高比（w/h）
     :return: 最佳匹配数字和匹配得分
     """
+    # 各数字的典型宽高比，用于几何特征评分
+    typical_ratios = {
+        '0': 0.65, '1': 0.20, '2': 0.60, '3': 0.60, '4': 0.65,
+        '5': 0.60, '6': 0.60, '7': 0.55, '8': 0.65, '9': 0.60
+    }
     scores = {}
 
     # 1. 模板相关系数匹配（主要依据）
@@ -127,7 +134,7 @@ def match_digit(roi, cnt, templates):
             template_img = cv2.resize(template_img, (roi.shape[1], roi.shape[0]))
         result = cv2.matchTemplate(roi, template_img, cv2.TM_CCOEFF_NORMED)
         template_score = np.max(result)
-        scores[digit] = {'template': template_score, 'shape': 0}
+        scores[digit] = {'template': template_score, 'shape': 0, 'geometry': 0}
 
     # 2. Hu矩形状匹配（辅助依据）
     if cnt is not None and len(cnt) >= 3:
@@ -139,11 +146,17 @@ def match_digit(roi, cnt, templates):
             shape_score = max(0, min(1, 1.0 - shape_distance))
             scores[digit]['shape'] = shape_score
 
-    # 3. 综合评分：模板匹配占70%，形状匹配占30%
+    # 3. 几何特征：利用原始宽高比辅助区分“1”等瘦长数字
+    for digit in scores:
+        ratio_diff = abs(aspect_ratio - typical_ratios.get(digit, 0.6))
+        geometry_score = max(0, 1.0 - ratio_diff / 0.4)
+        scores[digit]['geometry'] = geometry_score
+
+    # 4. 综合评分：模板匹配55% + 形状匹配25% + 几何特征20%
     best_digit = '?'
     best_score = -1
     for digit, s in scores.items():
-        combined = 0.7 * s['template'] + 0.3 * s['shape']
+        combined = 0.55 * s['template'] + 0.25 * s['shape'] + 0.20 * s['geometry']
         if combined > best_score:
             best_score = combined
             best_digit = digit
@@ -210,7 +223,7 @@ def detect_digits(image, min_area=80, max_area=2000, digit_region_ratio=0.6):
 
         roi = digit_region_gray[y:y+bh, x:x+bw]
         processed_roi, digit_cnt = preprocess_digit_roi(roi)
-        digit, score = match_digit(processed_roi, digit_cnt, templates)
+        digit, score = match_digit(processed_roi, digit_cnt, templates, aspect_ratio)
 
         detections.append({
             'digit': digit,

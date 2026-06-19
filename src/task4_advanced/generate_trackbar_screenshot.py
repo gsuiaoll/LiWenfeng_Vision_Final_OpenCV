@@ -8,7 +8,7 @@ import os
 import sys
 import numpy as np
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.utils import read_image, save_image
 
 
@@ -23,25 +23,26 @@ def generate_trackbar_screenshot(image_path, output_dir):
 
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    # 预设参数组合：蓝色检测
+    # 预设参数组合：蓝色检测与红色双段范围检测
     param_sets = [
         {
             'name': 'Blue Default',
-            'h_lower': 100, 'h_upper': 130,
+            'h_ranges': [(100, 130)],
             's_lower': 120, 's_upper': 255,
             'v_lower': 100, 'v_upper': 255,
             'blur_k': 5, 'morph_k': 5, 'min_area': 200
         },
         {
             'name': 'Blue Sensitive',
-            'h_lower': 90, 'h_upper': 140,
+            'h_ranges': [(90, 140)],
             's_lower': 80, 's_upper': 255,
             'v_lower': 80, 'v_upper': 255,
             'blur_k': 3, 'morph_k': 3, 'min_area': 100
         },
         {
             'name': 'Red Default',
-            'h_lower': 0, 'h_upper': 10,
+            # 红色在HSV中跨越0°/180°边界，使用两段范围合并
+            'h_ranges': [(0, 10), (160, 180)],
             's_lower': 120, 's_upper': 255,
             'v_lower': 100, 'v_upper': 255,
             'blur_k': 5, 'morph_k': 5, 'min_area': 200
@@ -57,10 +58,12 @@ def generate_trackbar_screenshot(image_path, output_dir):
         else:
             blurred_hsv = hsv
 
-        # HSV阈值分割
-        lower = np.array([params['h_lower'], params['s_lower'], params['v_lower']])
-        upper = np.array([params['h_upper'], params['s_upper'], params['v_upper']])
-        mask = cv2.inRange(blurred_hsv, lower, upper)
+        # HSV阈值分割（支持多段H范围，如红色）
+        mask = np.zeros(blurred_hsv.shape[:2], dtype=np.uint8)
+        for h_lower, h_upper in params['h_ranges']:
+            lower = np.array([h_lower, params['s_lower'], params['v_lower']])
+            upper = np.array([h_upper, params['s_upper'], params['v_upper']])
+            mask = cv2.bitwise_or(mask, cv2.inRange(blurred_hsv, lower, upper))
 
         # 形态学处理
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT,
@@ -86,7 +89,8 @@ def generate_trackbar_screenshot(image_path, output_dir):
         combined = np.hstack([image, mask_color, result])
 
         # 添加参数信息
-        info = (f"{params['name']} | H:[{params['h_lower']},{params['h_upper']}] "
+        h_info = " U ".join([f"[{h_l},{h_u}]" for h_l, h_u in params['h_ranges']])
+        info = (f"{params['name']} | H:{h_info} "
                 f"S:[{params['s_lower']},{params['s_upper']}] "
                 f"V:[{params['v_lower']},{params['v_upper']}] "
                 f"Blur:{params['blur_k']} Morph:{params['morph_k']} "
@@ -100,6 +104,7 @@ def generate_trackbar_screenshot(image_path, output_dir):
 
 
 if __name__ == "__main__":
-    input_image = os.path.join("test_images", "original", "images", "color_test.jpg")
-    output_dir = os.path.join("test_images", "results", "task4", "trackbar")
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    input_image = os.path.join(project_root, "test_images", "original", "images", "color_test.jpg")
+    output_dir = os.path.join(project_root, "test_images", "results", "task4", "trackbar")
     generate_trackbar_screenshot(input_image, output_dir)

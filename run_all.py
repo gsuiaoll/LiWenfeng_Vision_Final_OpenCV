@@ -19,6 +19,7 @@ from src.task3_shape_digit_recognition.shape_recognition import shape_recognitio
 from src.task3_shape_digit_recognition.digit_recognition import digit_recognition_pipeline
 from src.task4_advanced.armor_detection import armor_detection_pipeline
 from src.task4_advanced.robustness_test import robustness_test_pipeline
+from src.task4_advanced.generate_trackbar_screenshot import generate_trackbar_screenshot
 
 
 def main():
@@ -69,6 +70,13 @@ def main():
     # 进阶任务二：鲁棒性测试
     print("\n[进阶任务二] 算法鲁棒性测试...")
     robustness_test_pipeline(base_image_dir, os.path.join(results_dir, "task4"))
+
+    # 进阶任务三：Trackbar 调参效果图自动生成
+    print("\n[进阶任务三] 生成 Trackbar 调参截图...")
+    generate_trackbar_screenshot(
+        os.path.join(base_image_dir, "color_test.jpg"),
+        os.path.join(results_dir, "task4", "trackbar")
+    )
 
     print("\n" + "=" * 60)
     print("所有任务执行完成！")

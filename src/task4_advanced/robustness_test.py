@@ -14,7 +14,7 @@ import json
 import numpy as np
 from datetime import datetime
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from src.utils import read_image, save_image
 from src.task2_color_detection.color_detection import detect_color_targets
 from src.task3_shape_digit_recognition.shape_recognition import detect_shapes
