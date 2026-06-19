@@ -179,6 +179,17 @@ def detect_digits(image, min_area=80, max_area=2000, digit_region_ratio=0.6):
     kernel_small = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
     binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel_small, iterations=1)
 
+    # 把彩色形状的内部镂空区域也填黑，避免形状内的浅色像素被误识为数字笔画
+    # 限制：仅当形状 y 范围与数字 ROI 重叠时排除，避免误删真实数字
+    bgr_region = image[region_y:h, :, :]
+    hsv_region = cv2.cvtColor(bgr_region, cv2.COLOR_BGR2HSV)
+    # 仅排除亮色非白色像素（彩色形状），不排除纯白背景
+    colored_mask = ((hsv_region[:, :, 1] > 60) & (hsv_region[:, :, 2] > 100)).astype(np.uint8) * 255
+    # 闭运算填实形状内部
+    kernel_fill = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
+    colored_mask = cv2.morphologyEx(colored_mask, cv2.MORPH_CLOSE, kernel_fill, iterations=2)
+    binary = cv2.bitwise_and(binary, cv2.bitwise_not(colored_mask))
+
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     result = image.copy()

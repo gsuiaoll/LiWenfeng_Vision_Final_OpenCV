@@ -277,7 +277,7 @@ python -m src.task4_advanced.trackbar_tool
 | 图像基础预处理 | task1_preprocessing | `grayscale()`, `gaussian_blur()`, `histogram_equalization()`, `create_comparison_image()` | ✅ 灰度/模糊/均衡化对比清晰 |
 | 颜色阈值色块识别 | task2_color_detection | `hsv_color_threshold()`, `morphological_process()`, `detect_color_targets()` | ✅ 红蓝目标成功分割并标注坐标面积 |
 | 简单特征识别（几何图形） | task3_shape_digit_recognition | `detect_shapes()`, `preprocess_for_contours()` | ✅ 识别三角形/矩形/正方形/五边形/六边形/圆形 |
-| 0-9数字识别（禁OCR库） | task3_shape_digit_recognition | `digit_recognition_pipeline()`, 模板匹配 + Hu矩轮廓匹配 | ✅ 识别序列：0123456789，准确率100% |
+| 0-9数字识别（禁OCR库） | task3_shape_digit_recognition | `digit_recognition_pipeline()`, 模板匹配 + Hu矩轮廓匹配 | ✅ 识别序列：0123456789，准确率100%（排除彩色形状内部镂空干扰） |
 | 多条件目标精定位（装甲板） | task4_advanced | `detect_light_bars()`, `find_armor_candidates()`, `detect_corners()` | ✅ 检测到4个装甲板目标（颜色+轮廓+角点融合） |
 | 算法鲁棒性测试 | task4_advanced | `robustness_test_pipeline()`, 光照/遮挡场景测试 | ✅ 自动生成Markdown测试报告 |
 | 交互调参工具（Trackbar） | task4_advanced | 基于 `cv2.createTrackbar()` 实时调节 | ✅ 可交互实时调参 |

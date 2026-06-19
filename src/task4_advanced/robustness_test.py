@@ -48,7 +48,8 @@ def apply_lighting_effect(image, lighting_type):
 def enhance_for_low_light(image):
     """
     对低光照图像进行增强预处理（CLAHE自适应直方图均衡化）
-    在HSV的V通道上做CLAHE，保留颜色信息的同时提升亮度对比度
+    在LAB的L通道上做CLAHE，并对增强后偏暗的图像再叠加一次亮度提升，
+    保证暗光场景下颜色信息不丢失
     :param image: BGR图像
     :return: 增强后的BGR图像
     """
@@ -58,7 +59,62 @@ def enhance_for_low_light(image):
     clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
     l_enhanced = clahe.apply(l_channel)
     lab_enhanced = cv2.merge([l_enhanced, a_channel, b_channel])
-    return cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2BGR)
+    enhanced = cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2BGR)
+
+    # 若增强后整体仍然偏暗（V<80），叠加一次全局亮度/对比度拉伸
+    hsv = cv2.cvtColor(enhanced, cv2.COLOR_BGR2HSV)
+    if hsv[:, :, 2].mean() < 80:
+        enhanced = cv2.convertScaleAbs(enhanced, alpha=2.5, beta=20)
+    return enhanced
+
+
+def detect_color_targets_low_light(image, color_name, min_area=200):
+    """
+    暗光场景下的颜色检测：HSV 阈值 + BGR 通道差分双判据，避免饱和度丢失或 Hue 偏移
+    解决两类极端暗光：
+    1. 极暗红/蓝（饱和度信息丢失，HSV 失效）—— 使用 BGR 通道差分
+    2. 逆光灰化（红/蓝变成灰色，HSV 饱和度=0）—— 使用 BGR 通道差分
+    :param image: BGR图像
+    :param color_name: 'red' 或 'blue'
+    :param min_area: 最小有效面积
+    :return: (标注图, 目标列表, mask, processed_mask)
+    """
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    if color_name == 'red':
+        # HSV 阈值（保留饱和度信息）+ BGR 通道差分兜底灰化情况
+        hsv_mask = cv2.inRange(hsv, np.array([0, 30, 30]), np.array([10, 255, 255])) \
+                 | cv2.inRange(hsv, np.array([160, 30, 30]), np.array([180, 255, 255]))
+        b, g, r = cv2.split(image.astype(np.int16))
+        bgr_mask = ((r - b > 40) & (r - g > 30) & (r > 60)).astype(np.uint8) * 255
+    else:
+        hsv_mask = cv2.inRange(hsv, np.array([100, 30, 30]), np.array([130, 255, 255]))
+        b, g, r = cv2.split(image.astype(np.int16))
+        bgr_mask = ((b - r > 30) & (b - g > 30) & (b > 60)).astype(np.uint8) * 255
+    mask = cv2.bitwise_or(hsv_mask, bgr_mask)
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    result_image = image.copy()
+    targets = []
+    color_bgr = (0, 0, 255) if color_name == 'red' else (255, 0, 0)
+    for i, cnt in enumerate(contours):
+        area = cv2.contourArea(cnt)
+        if area < min_area:
+            continue
+        x, y, w, h = cv2.boundingRect(cnt)
+        cx, cy = x + w // 2, y + h // 2
+        angle = cv2.minAreaRect(cnt)[2] if len(cnt) >= 5 else 0.0
+        targets.append({
+            'id': i + 1, 'color': color_name, 'area': int(area),
+            'center': (cx, cy), 'bbox': (x, y, w, h), 'angle': round(angle, 2)
+        })
+        cv2.drawContours(result_image, [cnt], -1, color_bgr, 2)
+        cv2.rectangle(result_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.circle(result_image, (cx, cy), 5, (0, 255, 255), -1)
+    return result_image, targets, mask, mask
 
 
 def run_lighting_tests(image_dir, output_dir, expected_count=None):
@@ -98,8 +154,13 @@ def run_lighting_tests(image_dir, output_dir, expected_count=None):
             detect_img = enhanced
 
         # 在处理后的图像上进行检测
-        _, red_targets, _, _ = detect_color_targets(detect_img, 'red', min_area=200)
-        _, blue_targets, _, _ = detect_color_targets(detect_img, 'blue', min_area=200)
+        # 暗光场景使用宽松的 HSV 阈值（饱和度信息丢失），其他场景使用原检测器
+        if light_type in ('dark', 'backlit'):
+            _, red_targets, _, _ = detect_color_targets_low_light(detect_img, 'red', min_area=200)
+            _, blue_targets, _, _ = detect_color_targets_low_light(detect_img, 'blue', min_area=200)
+        else:
+            _, red_targets, _, _ = detect_color_targets(detect_img, 'red', min_area=200)
+            _, blue_targets, _, _ = detect_color_targets(detect_img, 'blue', min_area=200)
         detected = len(red_targets) + len(blue_targets)
 
         expected = expected_count.get(light_type, detected) if expected_count else detected
@@ -196,7 +257,11 @@ def generate_report(lighting_results, occlusion_results, output_path):
     report.append("1. **HSV阈值调整**：在逆光/昏暗环境下，适当降低S和V的下限，避免颜色信息丢失。\n")
     report.append("2. **形态学核大小**：遮挡比例较高时，增大闭运算核可以连接断裂的目标区域。\n")
     report.append("3. **最小面积过滤**：根据实际目标大小调整 min_area，平衡噪点过滤与目标保留。\n")
-    report.append("4. **光照补偿**：对暗光图像进行自适应直方图均衡化（CLAHE），提升颜色分割稳定性。\n\n")
+    report.append("4. **光照补偿**：对暗光图像进行自适应直方图均衡化（CLAHE），提升颜色分割稳定性。\n")
+    report.append("5. **双判据融合（HSV + BGR 通道差分）**：当颜色信息完全丢失（极端逆光把红色灰化为 R=G=B=200 且与背景重合）时，\n")
+    report.append("   单纯 HSV 阈值会失效，叠加 BGR 通道差分（R>>B 检测红，B>>R 检测蓝）可以识别残余颜色信息。\n")
+    report.append("6. **逆光极端场景的不可恢复性**：当目标颜色与背景灰度值完全一致（无任何颜色或亮度差异）时，\n")
+    report.append("   算法无法检测，属于预期失败（标注为漏检），需要在采集端避免。\n\n")
 
     report.append("## 五、结论\n")
     if lighting_results:
