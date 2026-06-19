@@ -68,8 +68,8 @@ def generate_trackbar_screenshot(image_path, output_dir):
         # 形态学处理
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT,
                                            (params['morph_k'], params['morph_k']))
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
 
         # 查找轮廓并标注
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

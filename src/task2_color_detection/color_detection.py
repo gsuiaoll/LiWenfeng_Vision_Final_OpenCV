@@ -110,7 +110,7 @@ def detect_color_targets(image, color_name, min_area=200):
 
         # 标注信息（增加深色背景条，确保文字在任何背景色上都清晰可读）
         h_img, w_img = result_image.shape[:2]
-        label = f"{color_name.upper()}#{i+1} A:{int(area)} C:({center_x},{center_y})"
+        label = f"{color_name.upper()}#{targets[-1]['id']} A:{int(area)} C:({center_x},{center_y})"
         font = cv2.FONT_HERSHEY_SIMPLEX
         text_size, _ = cv2.getTextSize(label, font, 0.45, 2)
         tw, th = text_size

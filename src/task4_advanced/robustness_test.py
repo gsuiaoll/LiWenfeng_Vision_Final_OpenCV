@@ -96,7 +96,7 @@ def detect_color_targets_low_light(image, color_name, min_area=200):
         cx, cy = x + w // 2, y + h // 2
         angle = cv2.minAreaRect(cnt)[2] if len(cnt) >= 5 else 0.0
         targets.append({
-            'id': i + 1, 'color': color_name, 'area': int(area),
+            'id': len(targets) + 1, 'color': color_name, 'area': int(area),
             'center': (cx, cy), 'bbox': (x, y, w, h), 'angle': round(angle, 2)
         })
         cv2.drawContours(result_image, [cnt], -1, color_bgr, 2)

@@ -93,6 +93,10 @@ def preprocess_digit_roi(roi):
     else:
         cropped = binary
 
+    # 防止零尺寸裁剪区域导致除零
+    if cropped.size == 0 or cropped.shape[0] == 0 or cropped.shape[1] == 0:
+        return np.zeros((28, 28), dtype=np.uint8), None
+
     # 保持长宽比，缩放到28x28画布中央
     canvas = np.zeros((28, 28), dtype=np.uint8)
     h, w = cropped.shape
