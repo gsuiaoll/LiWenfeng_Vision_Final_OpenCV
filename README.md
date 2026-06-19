@@ -1,6 +1,6 @@
 # 视觉算法组最终考核 — OpenCV图像识别项目
 
-> **仓库命名**：`姓名_视觉组_最终考核_OpenCV识别`（请将本仓库重命名为你的姓名）  
+> **仓库命名**：`LiWenfeng_Vision_Final_OpenCV`（对应 `李文锋_视觉组_最终考核_OpenCV识别`）  
 > **考核达标**：完成后将个人GitHub仓库链接发送到 `numiyo@163.com`
 
 ---
@@ -269,7 +269,7 @@ python -m src.task4_advanced.trackbar_tool
 |------|---------|---------|---------|
 | 装甲板定位 | armor_test.jpg | armor_test_armor_result.jpg | 检测到4个装甲板目标 |
 | 鲁棒性测试 | lighting/、occlusion/ | robustness_report.md | 自动生成测试报告 |
-| Trackbar | color_test.jpg | trackbar_result.jpg | 可交互实时调参 |
+| Trackbar | color_test.jpg | trackbar/trackbar_Blue_Default.jpg 等 | 可交互实时调参，含3组参数效果图 |
 
 ### 6.3 数字识别准确率
 

@@ -108,10 +108,23 @@ def detect_color_targets(image, color_name, min_area=200):
         cv2.rectangle(result_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
         cv2.circle(result_image, (center_x, center_y), 5, (0, 255, 255), -1)
 
-        # 标注信息
+        # 标注信息（自适应位置，避免超出边界或互相遮挡）
+        h_img, w_img = result_image.shape[:2]
         label = f"{color_name.upper()}#{i+1} A:{int(area)} C:({center_x},{center_y})"
-        cv2.putText(result_image, label, (x, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        text_size, _ = cv2.getTextSize(label, font, 0.45, 2)
+        tw, th = text_size
+        # 默认放在外接矩形上方
+        label_x = max(2, x)
+        label_y = max(th + 5, y - 5)
+        # 如果上方空间不足，则放在矩形内部
+        if label_y < th + 10:
+            label_y = y + th + 5
+        # 避免超出右边界
+        if label_x + tw > w_img:
+            label_x = max(2, w_img - tw - 2)
+        cv2.putText(result_image, label, (label_x, label_y),
+                    font, 0.45, color_bgr, 2)
 
     return result_image, targets, mask, processed_mask
 

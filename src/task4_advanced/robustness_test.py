@@ -238,9 +238,26 @@ def robustness_test_pipeline(base_dir, output_dir):
     lighting_dir = os.path.join(base_dir, 'lighting')
     occlusion_dir = os.path.join(base_dir, 'occlusion')
 
-    # 根据实际图片设定期望目标数（可手动调整）
-    lighting_expected = {'normal': 4, 'bright': 4, 'dark': 4, 'backlit': 4, 'gradient': 4}
-    occlusion_expected = {'none': 4, '25%': 4, '50%': 4, '75%': 4}
+    # 自动从基准图片统计期望目标数（normal光照、无遮挡），无需手动硬编码
+    lighting_expected = {}
+    normal_path = os.path.join(lighting_dir, 'lighting_normal.jpg')
+    if os.path.exists(normal_path):
+        normal_img = read_image(normal_path)
+        if normal_img is not None:
+            _, red, _, _ = detect_color_targets(normal_img, 'red', min_area=200)
+            _, blue, _, _ = detect_color_targets(normal_img, 'blue', min_area=200)
+            base_count = len(red) + len(blue)
+            lighting_expected = {k: base_count for k in ['normal', 'bright', 'dark', 'backlit', 'gradient']}
+
+    occlusion_expected = {}
+    none_path = os.path.join(occlusion_dir, 'occlusion_none.jpg')
+    if os.path.exists(none_path):
+        none_img = read_image(none_path)
+        if none_img is not None:
+            _, red, _, _ = detect_color_targets(none_img, 'red', min_area=200)
+            _, blue, _, _ = detect_color_targets(none_img, 'blue', min_area=200)
+            base_count = len(red) + len(blue)
+            occlusion_expected = {'none': base_count, '25%': base_count, '50%': base_count, '75%': base_count}
 
     lighting_results = run_lighting_tests(lighting_dir, output_dir, lighting_expected)
     occlusion_results = run_occlusion_tests(occlusion_dir, output_dir, occlusion_expected)
