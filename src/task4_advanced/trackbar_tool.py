@@ -10,7 +10,7 @@ import sys
 import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-from src.utils import read_image
+from src.utils import read_image, save_image
 
 
 class TrackbarTool:
@@ -149,9 +149,9 @@ class TrackbarTool:
         output_dir = os.path.join("test_images", "results", "task4", "trackbar")
         os.makedirs(output_dir, exist_ok=True)
 
-        # 保存结果图
-        cv2.imwrite(os.path.join(output_dir, "trackbar_result.jpg"), combined)
-        cv2.imwrite(os.path.join(output_dir, "trackbar_mask.jpg"), mask)
+        # 保存结果图（使用save_image支持中文路径）
+        save_image(os.path.join(output_dir, "trackbar_result.jpg"), combined)
+        save_image(os.path.join(output_dir, "trackbar_mask.jpg"), mask)
 
         # 保存参数
         with open(os.path.join(output_dir, "trackbar_params.txt"), 'w', encoding='utf-8') as f:

@@ -198,8 +198,8 @@ def detect_digits(image, min_area=80, max_area=2000, digit_region_ratio=0.6):
             continue
 
         roi = digit_region_gray[y:y+bh, x:x+bw]
-        processed_roi, cnt = preprocess_digit_roi(roi)
-        digit, score = match_digit(processed_roi, cnt, templates)
+        processed_roi, digit_cnt = preprocess_digit_roi(roi)
+        digit, score = match_digit(processed_roi, digit_cnt, templates)
 
         detections.append({
             'digit': digit,

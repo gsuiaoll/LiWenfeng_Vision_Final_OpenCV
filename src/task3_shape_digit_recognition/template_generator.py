@@ -10,7 +10,7 @@ import sys
 import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-from src.utils import read_image
+from src.utils import read_image, save_image
 
 
 def extract_digit_templates(image_path, output_dir, digit_region_ratio=0.6):
@@ -72,7 +72,7 @@ def extract_digit_templates(image_path, output_dir, digit_region_ratio=0.6):
         y_off = (28 - new_h) // 2
         x_off = (28 - new_w) // 2
         template[y_off:y_off+new_h, x_off:x_off+new_w] = resized
-        cv2.imwrite(os.path.join(output_dir, f"{i}.png"), template)
+        save_image(os.path.join(output_dir, f"{i}.png"), template)
         print(f"[模板生成] 数字 {i} 模板已保存")
 
     return True

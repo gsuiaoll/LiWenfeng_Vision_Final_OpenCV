@@ -26,50 +26,52 @@ def main():
     print("OpenCV 视觉算法最终考核 - 自动化测试脚本")
     print("=" * 60)
 
-    base_image_dir = os.path.join("test_images", "original", "images")
+    # 使用绝对路径，避免依赖运行目录
+    base_image_dir = os.path.join(project_root, "test_images", "original", "images")
+    results_dir = os.path.join(project_root, "test_images", "results")
 
     # 任务一：图像基础预处理
     print("\n[任务一] 图像基础预处理...")
     preprocess_pipeline(
         os.path.join(base_image_dir, "basic_test.jpg"),
-        os.path.join("test_images", "results", "task1")
+        os.path.join(results_dir, "task1")
     )
 
     # 任务二：颜色阈值色块识别
     print("\n[任务二] 颜色阈值色块识别...")
     color_detection_pipeline(
         os.path.join(base_image_dir, "color_test.jpg"),
-        os.path.join("test_images", "results", "task2")
+        os.path.join(results_dir, "task2")
     )
 
     # 任务三：几何图形识别
     print("\n[任务三] 几何图形识别...")
     shape_recognition_pipeline(
         os.path.join(base_image_dir, "shape_number_test.jpg"),
-        os.path.join("test_images", "results", "task3")
+        os.path.join(results_dir, "task3")
     )
 
     # 任务三：数字识别
     print("\n[任务三] 印刷体数字识别...")
     digit_recognition_pipeline(
         os.path.join(base_image_dir, "shape_number_test.jpg"),
-        os.path.join("test_images", "results", "task3")
+        os.path.join(results_dir, "task3")
     )
 
     # 进阶任务一：装甲板目标定位
     print("\n[进阶任务一] 装甲板目标定位...")
     armor_detection_pipeline(
         os.path.join(base_image_dir, "armor_test.jpg"),
-        os.path.join("test_images", "results", "task4")
+        os.path.join(results_dir, "task4")
     )
 
     # 进阶任务二：鲁棒性测试
     print("\n[进阶任务二] 算法鲁棒性测试...")
-    robustness_test_pipeline(base_image_dir, os.path.join("test_images", "results", "task4"))
+    robustness_test_pipeline(base_image_dir, os.path.join(results_dir, "task4"))
 
     print("\n" + "=" * 60)
     print("所有任务执行完成！")
-    print(f"测试结果保存在：{os.path.join(project_root, 'test_images', 'results')}")
+    print(f"测试结果保存在：{results_dir}")
     print("=" * 60)
 
 
