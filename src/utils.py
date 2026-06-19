@@ -92,8 +92,8 @@ def create_comparison_image(images, titles, cols=2):
         bar_h = th + 16
         bar_x1 = col * target_w
         bar_y1 = row * target_h
-        bar_x2 = bar_x1 + tw + 20
-        bar_y2 = bar_y1 + bar_h
+        bar_x2 = min(canvas.shape[1], bar_x1 + tw + 20)
+        bar_y2 = min(canvas.shape[0], bar_y1 + bar_h)
         cv2.rectangle(canvas, (bar_x1, bar_y1), (bar_x2, bar_y2), (40, 40, 40), -1)
         # 添加标题（黄色字体+黑色描边）
         title_pos = (bar_x1 + 10, bar_y1 + th + 5)

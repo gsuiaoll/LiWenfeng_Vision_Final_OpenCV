@@ -124,7 +124,12 @@ class TrackbarTool:
 
     def run(self):
         """启动调参界面主循环"""
-        print("按 'q' 退出，按 's' 保存当前参数和结果")
+        print("=" * 50)
+        print("OpenCV HSV 交互调参工具")
+        print("窗口标题:", self.WINDOW_NAME)
+        print("按 'q' 退出")
+        print("按 's' 保存当前参数和结果到 test_images/results/task4/trackbar/")
+        print("=" * 50)
         while True:
             params = self.get_trackbar_values()
             combined, mask = self.process(params)
